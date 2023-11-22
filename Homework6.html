@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <style>
+        .chart-container {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            border: 1px solid #000;
+            display: block;
+        }
+
+        .resizable-frame {
+            position: relative;
+            overflow: hidden;
+            margin-right: 10px;
+        }
+
+        .resizable-rectangle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #4285f4;
+            border: 1px solid #000;
+            cursor: nwse-resize;
+        }
+    </style>
+    <title>Attack Simulation</title>
+</head>
+<body>
+    <div class="chart-container">
+        <!-- Server Simulation -->
+        <div class="resizable-frame" style="flex: 1;">
+            <h3>System Discard Probability Simulation</h3>
+            <label for="inputSystems">Number of Systems (M):</label>
+            <input id="inputSystems" type="number" value="5" min="1" max="1000">
+            <label for="inputAttacks">Number of Attacks (N):</label>
+            <input id="inputAttacks" type="number" value="100" min="1" max="1000">
+            <label for="inputPenetrationScore">Penetration Score (P):</label>
+            <input id="inputPenetrationScore" type="number" value="20" min="1">
+            <label for="inputSecurityScore">Security Score (S):</label>
+            <input id="inputSecurityScore" type="number" value="60" min="1">
+            <button id="simulateSystems" type="button">Simulate System Attacks</button>
+
+            <canvas id="chartCanvasSystems" width="400" height="300"></canvas>
+            <div class="resizable-rectangle" id="resizableSystems"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("simulateSystems").onclick = simulateSystems;
+
+        function simulateSystems() {
+            const numSystems = parseInt(document.getElementById("inputSystems").value, 10);
+            const numAttacks = parseInt(document.getElementById("inputAttacks").value, 10);
+            const penetrationScore = parseInt(document.getElementById("inputPenetrationScore").value, 10);
+            const securityScore = parseInt(document.getElementById("inputSecurityScore").value, 10);
+
+            simulateSystemAttacks('chartCanvasSystems', 'resizableSystems', numSystems, numAttacks, penetrationScore, securityScore);
+        }
+
+        function simulateSystemAttacks(canvasId, resizableId, numSystems, numAttacks, penetrationScore, securityScore) {
+            const ctx = document.getElementById(canvasId).getContext("2d");
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({ length: numAttacks }, (_, i) => i + 1),
+                    datasets: []
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Number of Attacks',
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Discard Probability',
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const resizable = document.getElementById(resizableId);
+            resizable.style.width = `${chart.canvas.width}px`;
+            resizable.style.height = `${chart.canvas.height}px`;
+            resizable.style.left = 'calc(100% - 10px)';
+            resizable.style.top = 'calc(100% - 10px)';
+            resizable.addEventListener('mousedown', (event) => startResizing(event, resizable, chart, ctx));
+
+            for (let system = 1; system <= numSystems; system++) {
+                const data = simulateDiscardProbabilities(numAttacks, penetrationScore, securityScore);
+                chart.data.datasets.push({
+                    label: `System ${system}`,
+                    data: data,
+                    borderColor: getRandomColor(),
+                    borderWidth: 1,
+                    fill: false
+                });
+            }
+
+            chart.update();
+        }
+
+        function startResizing(event, resizable, chart, ctx) {
+            window.addEventListener('mousemove', (e) => resize(e, resizable, chart, ctx));
+            window.addEventListener('mouseup', () => stopResizing(resizable));
+        }
+
+        function resize(event, resizable, chart, ctx) {
+            resizable.style.width = `${event.clientX - resizable.getBoundingClientRect().left}px`;
+            resizable.style.height = `${event.clientY - resizable.getBoundingClientRect().top}px`;
+            chart.resize();
+            chart.update();
+        }
+
+        function stopResizing(resizable) {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        }
+
+        function simulateDiscardProbabilities(numAttacks, penetrationScore, securityScore) {
+            const probabilities = [];
+            let discardProbability = 0;
+
+            for (let attack = 1; attack <= numAttacks; attack++) {
+                if (discardProbability >= 1) {
+                    probabilities.push(1); // System is discarded
+                } else {
+                    discardProbability += Math.random() < penetrationScore / 100 ? 1 : -1;
+                    probabilities.push(discardProbability);
+                }
+            }
+
+            return probabilities;
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
